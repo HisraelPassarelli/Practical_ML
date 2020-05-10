@@ -1,0 +1,129 @@
+---
+title: "Peer Assignment"
+author: "Hisrael Passarelli"
+date: "10/05/2020"
+output: html_document
+---
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+col <- function(x, color) {
+  if (knitr::is_latex_output()) {
+    sprintf("\\textcolor{%s}{%s}", color, x)
+  } else if (knitr::is_html_output()) {
+    sprintf("<span style='color: %s;'>%s</span>", color, 
+      x)
+  } else x
+}
+```
+
+### **Background**
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+### Loading Data and Packages
+
+```{r, results='hide'}
+library(ggplot2); library(caret); library(rpart); library(rattle)
+```
+
+
+```{r}
+training <- read.csv("./data/pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+
+testing <- read.csv("./data/pml-testing.csv", na.strings = c("NA", "#DIV/0!", ""))
+
+# Delete columns with all missing values
+training<-training[,colSums(is.na(training)) == 0]
+testingset <-testing[,colSums(is.na(testing)) == 0]
+```
+
+#### Partitioning training set
+
+```{r}
+#Partition into two data sets (60% training, 40% testing)
+
+inTrain <- createDataPartition(y=training$classe, p=.6, list=FALSE)
+
+training<- training[inTrain,]; testing <- training[-inTrain,]
+
+dim(training); dim(testing)
+```
+
+
+### A look at the data
+
+```{r}
+qplot(training$classe, main="Bar Plot of levels of the variable classe within the training data set", xlab="classe levels", ylab="Frequency")
+```
+
+### Prediction 1: Decision Tree
+
+```{r}
+modFit <- rpart(classe ~., data=training, method = "class") 
+
+#Decision tree with rattle package:
+
+fancyRpartPlot(modFit)
+
+```
+
+
+### Predicting
+```{r}
+predictions <- predict(modFit, data=training, type="class")
+
+#Using confusion Matrix to test results: 
+
+confusionMatrix(predictions, training$classe)
+```
+
+### Prediction Using Random Forest
+
+```{r}
+model2 <- randomForest::randomForest(classe ~., data=training, method="class")
+
+prediction2 <- predict(model2, testing, type="class")
+
+confusionMatrix(prediction2, testing$classe)
+```
+
+Random Forests yielded better Results.
+
+### Files to submit as answers for the Assignment
+
+```{r}
+prediction2 <- predict(model2, testing, type = "class")
+```
+
+
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(prediction2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
